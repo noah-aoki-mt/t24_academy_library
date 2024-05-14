@@ -81,6 +81,9 @@ public class RentalManageService {
     public void update(String id, RentalManageDto rentalManageDto) throws Exception {
         try {
             RentalManage rentalManage = findById(Long.parseLong(id));
+            if (rentalManage == null) {
+                throw new Exception("ID not found.");
+            }
             Account account = rentalManage.getAccount();
             if (account == null) {
                 throw new Exception("Account not found.");

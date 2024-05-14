@@ -75,8 +75,7 @@ public class RentalManageDto {
     }
 
     return Optional.empty(); // バリデーションが成功した場合
-}
-    
+}  
 }
 
 

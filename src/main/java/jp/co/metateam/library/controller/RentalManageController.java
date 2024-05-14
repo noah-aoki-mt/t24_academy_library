@@ -99,60 +99,60 @@ public class RentalManageController {
         }
 }
 // //貸出編集画面
-@GetMapping("/rental/{id}/edit")
-public String edit(@PathVariable("id") String id, Model model) {
-    List<Account> accountList = this.accountService.findAll();
-    List <Stock> stockList = this.stockService.findStockAvailableAll();
-    
-    model.addAttribute("accounts", accountList);
-    model.addAttribute("stockList", stockList);
-    model.addAttribute("rentalStatus", RentalStatus.values());
+    @GetMapping("/rental/{id}/edit")
+    public String edit(@PathVariable("id") String id, Model model) {
+        
+        List<Account> accountList = this.accountService.findAll();
+        List <Stock> stockList = this.stockService.findStockAvailableAll();
 
-    if (!model.containsAttribute("rentalManageDto")) {
-        RentalManageDto rentalManageDto = new RentalManageDto();
-        Long idLong = Long.parseLong(id);
-        RentalManage rentalManage = this.rentalManageService.findById(idLong);
-        rentalManageDto.setId(rentalManage.getId());
-        rentalManageDto.setStockId(rentalManage.getStock().getId());
-        rentalManageDto.setEmployeeId(rentalManage.getAccount().getEmployeeId());
-        rentalManageDto.setStatus(rentalManage.getStatus());
-        rentalManageDto.setExpectedRentalOn(rentalManage.getExpectedRentalOn());
-        rentalManageDto.setExpectedReturnOn(rentalManage.getExpectedReturnOn());
+        model.addAttribute("accounts", accountList);
+        model.addAttribute("stockList", stockList);
+        model.addAttribute("rentalStatus", RentalStatus.values());
+        
+        if (!model.containsAttribute("rentalManageDto")) {
 
-        model.addAttribute("rentalManageDto", rentalManageDto);
-    }
+            RentalManageDto rentalManageDto = new RentalManageDto();
+            Long idLong = Long.parseLong(id);
+            RentalManage rentalManage = this.rentalManageService.findById(idLong);
+            rentalManageDto.setId(rentalManage.getId());
+            rentalManageDto.setStockId(rentalManage.getStock().getId());
+            rentalManageDto.setEmployeeId(rentalManage.getAccount().getEmployeeId());
+            rentalManageDto.setStatus(rentalManage.getStatus());
+            rentalManageDto.setExpectedRentalOn(rentalManage.getExpectedRentalOn());
+            rentalManageDto.setExpectedReturnOn(rentalManage.getExpectedReturnOn());
+            
+            model.addAttribute("rentalManageDto", rentalManageDto);
+        }
 
     return "rental/edit";
 }
 
-@PostMapping("/rental/{id}/edit")
-public String update(@PathVariable("id") String id, @Valid @ModelAttribute RentalManageDto rentalManageDto, BindingResult result, RedirectAttributes ra) {
-     try {
-    if (result.hasErrors()) {
-        throw new Exception("Validation error.");
-    }
-    //バリデーションの呼び出しDtoのステータスだけ渡したい
-    Long idLong = Long.parseLong(id);
-    RentalManage rentalManage = this.rentalManageService.findById(idLong);
-    Integer previousRentalStatus = rentalManage.getStatus();
-    Optional<String> errMessage = rentalManageDto.validateStatus(previousRentalStatus);
-    if(errMessage.isPresent()){
-        //変換してエラーを投げる
-        result.addError(new FieldError("rentalManageDto", "status", errMessage.get()));
-        throw new Exception(errMessage.get());
-        }
+    @PostMapping("/rental/{id}/edit")
+    public String update(@PathVariable("id") String id, @Valid @ModelAttribute RentalManageDto rentalManageDto, BindingResult result, RedirectAttributes ra, Model model) {
+        try {
+            if (result.hasErrors()) {
+                throw new Exception("Validation error.");
+            }
+            Long idLong = Long.parseLong(id);
+            RentalManage rentalManage = this.rentalManageService.findById(idLong);
+            Integer previousRentalStatus = rentalManage.getStatus();
+            Optional<String> errMessage = rentalManageDto.validateStatus(previousRentalStatus);
+            if(errMessage.isPresent()){
+                result.addError(new FieldError("rentalManageDto", "status", errMessage.get()));
+                throw new Exception(errMessage.get());
+            }
 
-    // 登録処理
-    rentalManageService.update(id, rentalManageDto);
+        // 登録処理
+            rentalManageService.update(id, rentalManageDto);
 
-    return "redirect:/rental/index";
-} catch (Exception e) {
-    log.error(e.getMessage());
+            return "redirect:/rental/index";
+    } catch (Exception e) {
+        log.error(e.getMessage());
 
-    ra.addFlashAttribute("rentalManageDto", rentalManageDto);
-    ra.addFlashAttribute("org.springframework.validation.BindingResult.rentalManageDto", result);
+        ra.addFlashAttribute("rentalManageDto", rentalManageDto);
+        ra.addFlashAttribute("org.springframework.validation.BindingResult.rentalManageDto", result);
 
-    return "redirect:/rental/" + id + "/edit";
+        return "redirect:/rental/" + id + "/edit";
 }
 }
 }
