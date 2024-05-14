@@ -94,7 +94,6 @@ public class RentalManageController {
             ra.addFlashAttribute("org.springframework.validation.BindingResult.RentalManageDto", result);
             return "redirect:/rental/add";
         }
-    }
 
 // //貸出編集画面
     @GetMapping("/rental/{id}/edit")
@@ -144,4 +143,6 @@ public class RentalManageController {
             return "redirect:/rental/" + id + "/edit";
         }
     }
+}
+}
 }
