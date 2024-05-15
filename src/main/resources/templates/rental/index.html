@@ -62,7 +62,10 @@
                                     </th:block> 
                                     <th:block th:case=*>
                                         <div th:text="${'返却日：' + #dates.format(rentalManage.returnedAt, ('yyyy/MM/dd'))}"></div>
-                                    </th:block>                           
+                                    </th:block>      
+                                </th:block>
+                                <div th:if="${rentalManage.status == 3}">
+                                    <div th:text="${'キャンセル日：' + #dates.format(rentalManage.canceledAt, ('yyyy/MM/dd'))}"></div>                   
                             </td>
                         </tr>
                     </tbody>
