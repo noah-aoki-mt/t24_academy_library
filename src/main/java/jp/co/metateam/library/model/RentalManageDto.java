@@ -2,11 +2,13 @@ package jp.co.metateam.library.model;
 
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Optional;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jp.co.metateam.library.values.RentalStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -45,4 +47,45 @@ public class RentalManageDto {
     private Stock stock;
 
     private Account account;
+    
+
+   public Optional<String> validateStatus(Integer previousRentalStatus){
+
+    //ステータスが貸出待ちから返却済みの場合のエラー
+    if (previousRentalStatus == RentalStatus.RENT_WAIT.getValue() && previousRentalStatus != this.status) {
+        if(this.status == RentalStatus.RETURNED.getValue())//変更先が返却済みだったら
+        {
+            return Optional.of("貸出待ちの本は返却済みに変更できません。");
+        }
+    }
+    //ステータスが貸出中から返却済み以外はエラー
+    else if (previousRentalStatus == RentalStatus.RENTAlING.getValue() && previousRentalStatus != this.status ) {
+        if(this.status != RentalStatus.RETURNED.getValue())
+        {
+        return Optional.of("貸出中の本は"+ RentalStatus.getTextFormValue(this.status) +"に変更できません。");
+        }
+    }
+    // キャンセルのステータスを変更する場合にエラー
+    else if (previousRentalStatus == RentalStatus.CANCELED.getValue() && this.status != RentalStatus.CANCELED.getValue()) {
+        return Optional.of("キャンセルのステータスを変更することはできません。"); 
+    } 
+    // 返却済みのステータスを変更する場合にエラー
+    else if (previousRentalStatus == RentalStatus.RETURNED.getValue() && this.status != RentalStatus.RETURNED.getValue()) {
+        return Optional.of("返却済みのステータスを変更することはできません。");
+    }
+
+        return Optional.empty(); // バリデーションが成功した場合
+    }  
+
+    //日付妥当性のチェック
+    public Optional<String> validateDate() { 
+        if(this.expectedRentalOn != null && this.expectedReturnOn != null){
+            if(this.expectedReturnOn.before(this.expectedRentalOn)){
+                return Optional.of("返却予定日は貸出予定日よりの後の日付を入力してください");
+            }
+        }
+        return Optional.empty();
+    }
 }
+
+

@@ -12,5 +12,14 @@ public enum RentalStatus implements Values {
     , CANCELED(3, "キャンセル");
 
     private final Integer value;
-    private final String text;  
+    private final String text; 
+    
+    public static String getTextFormValue(Integer value){
+        for (RentalStatus status : RentalStatus.values()) {
+            if (status.getValue().equals(value)) {
+                return status.getText();
+            }
+        }
+        return "error";
+    }
 }
