@@ -56,8 +56,13 @@
                                     <th:block th:case=*>
                                         <div th:text="${'貸出開始日：' + #dates.format(rentalManage.rentaledAt, ('yyyy/MM/dd'))}"></div>
                                     </th:block>
-                                </th:block>
-                                <div th:text="${'返却予定日：' + #dates.format(rentalManage.expectedReturnOn, ('yyyy/MM/dd'))}"></div>
+                                <th:block th:switch="${rentalManage.returnedAt == null}">
+                                    <th:block th:case=true>
+                                        <div th:text="${'返却予定日：' + #dates.format(rentalManage.expectedReturnOn, ('yyyy/MM/dd'))}"></div>   
+                                    </th:block> 
+                                    <th:block th:case=*>
+                                        <div th:text="${'返却日：' + #dates.format(rentalManage.returnedAt, ('yyyy/MM/dd'))}"></div>
+                                    </th:block>                           
                             </td>
                         </tr>
                     </tbody>

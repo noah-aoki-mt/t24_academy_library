@@ -74,8 +74,18 @@ public class RentalManageDto {
         return Optional.of("返却済みのステータスを変更することはできません。");
     }
 
-    return Optional.empty(); // バリデーションが成功した場合
-}  
+        return Optional.empty(); // バリデーションが成功した場合
+    }  
+
+    //日付妥当性のチェック
+    public Optional<String> validateDate() { 
+        if(this.expectedRentalOn != null && this.expectedReturnOn != null){
+            if(this.expectedReturnOn.before(this.expectedRentalOn)){
+                return Optional.of("返却予定日は貸出予定日よりの後の日付を入力してください");
+            }
+        }
+        return Optional.empty();
+    }
 }
 
 
