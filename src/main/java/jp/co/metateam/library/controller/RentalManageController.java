@@ -134,6 +134,12 @@ public class RentalManageController {
             if (result.hasErrors()) {
                 throw new Exception("Validation error.");
             }
+            //日付妥当性チェック
+            Optional<String> dateValidationError = rentalManageDto.validateDate();
+            if(dateValidationError.isPresent()){
+                result.addError(new FieldError("rentalManageDto", "expectedReturnOn", dateValidationError.get()));
+                throw new Exception(dateValidationError.get());
+            }
             Long idLong = Long.parseLong(id);
             RentalManage rentalManage = this.rentalManageService.findById(idLong);
             Integer previousRentalStatus = rentalManage.getStatus();
