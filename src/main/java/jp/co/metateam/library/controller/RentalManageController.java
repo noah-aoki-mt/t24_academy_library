@@ -104,7 +104,6 @@ public class RentalManageController {
             return "redirect:/rental/add";
         }
     }
-
 // //貸出編集画面
     @GetMapping("/rental/{id}/edit")
     public String edit(@PathVariable("id") String id, Model model) {
@@ -135,13 +134,6 @@ public class RentalManageController {
             if (result.hasErrors()) {
                 throw new Exception("Validation error.");
             }
-            //日付妥当性チェック
-            Optional<String> dateValidationError = rentalManageDto.validateDate();
-            if(dateValidationError.isPresent()){
-                result.addError(new FieldError("rentalManageDto", "expectedReturnOn", dateValidationError.get()));
-                throw new Exception(dateValidationError.get());
-            }
-            //貸出ステータスチェック
             Long idLong = Long.parseLong(id);
             RentalManage rentalManage = this.rentalManageService.findById(idLong);
             Integer previousRentalStatus = rentalManage.getStatus();
