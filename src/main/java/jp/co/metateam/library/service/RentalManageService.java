@@ -2,6 +2,9 @@ package jp.co.metateam.library.service;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
+import java.util.Arrays;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,7 @@ import jp.co.metateam.library.repository.AccountRepository;
 import jp.co.metateam.library.repository.RentalManageRepository;
 import jp.co.metateam.library.repository.StockRepository;
 import jp.co.metateam.library.values.RentalStatus;
+import jp.co.metateam.library.values.StockStatus;
 
 @Service
 public class RentalManageService {
@@ -34,6 +38,7 @@ public class RentalManageService {
         this.accountRepository = accountRepository;
         this.rentalManageRepository = rentalManageRepository;
         this.stockRepository = stockRepository;
+;
     }
 
     @Transactional
@@ -46,6 +51,11 @@ public class RentalManageService {
     @Transactional
     public RentalManage findById(Long id) {
         return this.rentalManageRepository.findById(id).orElse(null);
+    }
+
+    @Transactional
+    public List<RentalManage> findAllByStatusIn(List<Integer> statuses) {
+        return this.rentalManageRepository.findAllByStatusIn(statuses);
     }
 
     @Transactional 
@@ -78,9 +88,9 @@ public class RentalManageService {
     }
 
      @Transactional 
-    public void update(String id, RentalManageDto rentalManageDto) throws Exception {
+    public void update(Long id, RentalManageDto rentalManageDto) throws Exception {
         try {
-            RentalManage rentalManage = findById(Long.parseLong(id));
+            RentalManage rentalManage = findById(id);
             if (rentalManage == null) {
                 throw new Exception("ID not found.");
             }
@@ -122,4 +132,6 @@ public class RentalManageService {
 
         return rentalManage;
     }
+
+
 }

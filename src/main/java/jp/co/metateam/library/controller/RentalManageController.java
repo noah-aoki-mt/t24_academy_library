@@ -1,12 +1,16 @@
 package jp.co.metateam.library.controller;
  
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +26,7 @@ import jp.co.metateam.library.service.AccountService;
 import jp.co.metateam.library.service.RentalManageService;
 import jp.co.metateam.library.service.StockService;
 import jp.co.metateam.library.values.RentalStatus;
+import jp.co.metateam.library.values.StockStatus;
 import lombok.extern.log4j.Log4j2;
 
 
@@ -80,30 +85,54 @@ public class RentalManageController {
     }
     
     @PostMapping("/rental/add")
-    public String save(@Valid @ModelAttribute RentalManageDto rentalManageDto, BindingResult result, RedirectAttributes ra) {
+    public String save(@Valid @ModelAttribute RentalManageDto rentalManageDto, BindingResult result, RedirectAttributes ra, Long id,Model model) {
         try {
             if (result.hasErrors()) {
                 throw new Exception("Validation error.");
             }
-            //日付妥当性チェック
-            Optional<String> dateValidationError = rentalManageDto.validateDate();
-            if(dateValidationError.isPresent()){
-                result.addError(new FieldError("rentalManageDto", "expectedReturnOn", dateValidationError.get()));
-                throw new Exception(dateValidationError.get());
+            
+            Boolean rentalCheckErrors = rentalAddCheck(id,rentalManageDto,result);
+            if (rentalCheckErrors != null) {
+                if (rentalCheckErrors) {
+                    throw new Exception("Rental edit check failed");
+                }
             }
+            // List<String> rentalCheckErrors = rentalAddCheck(id,rentalManageDto);
+            // if (!rentalCheckErrors.isEmpty()) {
+            //     for (String error : rentalCheckErrors) {
+            //         result.addError(new FieldError("rentalManageDto", "expectedRentalOn", error));
+            //     }
+            //     throw new Exception(rentalCheckErrors.get(0));
+            // }
+            // List<String> returnCheckError = returnAddCheck(id, rentalManageDto);
+            // if (!rentalCheckErrors.isEmpty()) {
+            //     for (String error : rentalCheckErrors) {
+            //         result.addError(new FieldError("rentalManageDto", "expectedRentalOn", error));
+            //     }
+            //     throw new Exception(returnCheckError.get(0));
+            // }
+        
             // 登録処理
             this.rentalManageService.save(rentalManageDto);
 
             return "redirect:/rental/index";
         }
-            
-            catch (Exception e) {
+        catch (Exception e) {
             log.error(e.getMessage());
             ra.addFlashAttribute("RentalManageDto", rentalManageDto);
             ra.addFlashAttribute("org.springframework.validation.BindingResult.RentalManageDto", result);
-            return "redirect:/rental/add";
+
+            List<Account> accountList = this.accountService.findAll();
+            List <Stock> stockList = this.stockService.findStockAvailableAll();
+     
+            model.addAttribute("accounts", accountList);
+            model.addAttribute("stockList", stockList);
+            model.addAttribute("rentalStatus", RentalStatus.values());
+     
+            return "rental/add";
         }
     }
+
 // //貸出編集画面
     @GetMapping("/rental/{id}/edit")
     public String edit(@PathVariable("id") String id, Model model) {
@@ -129,7 +158,7 @@ public class RentalManageController {
         return "rental/edit";
     }
     @PostMapping("/rental/{id}/edit")
-    public String update(@PathVariable("id") String id, @Valid @ModelAttribute RentalManageDto rentalManageDto, BindingResult result, RedirectAttributes ra, Model model) {
+    public String update(@PathVariable("id")  Long id, @Valid @ModelAttribute RentalManageDto rentalManageDto, BindingResult result, RedirectAttributes ra, Model model) {
         try {
             if (result.hasErrors()) {
                 throw new Exception("Validation error.");
@@ -140,22 +169,103 @@ public class RentalManageController {
                 result.addError(new FieldError("rentalManageDto", "expectedReturnOn", dateValidationError.get()));
                 throw new Exception(dateValidationError.get());
             }
-            Long idLong = Long.parseLong(id);
-            RentalManage rentalManage = this.rentalManageService.findById(idLong);
+            RentalManage rentalManage = this.rentalManageService.findById(id);
             Integer previousRentalStatus = rentalManage.getStatus();
             Optional<String> errMessage = rentalManageDto.validateStatus(previousRentalStatus);
             if(errMessage.isPresent()){
                 result.addError(new FieldError("rentalManageDto", "status", errMessage.get()));
                 throw new Exception(errMessage.get());
             }
+
+            //貸出可否チェック
+            Boolean rentalCheckErrors = rentalEditCheck(id,rentalManageDto,result);
+            if (rentalCheckErrors) {
+                throw new Exception("Rental edit check failed");
+            }
+
+ 
         // 登録処理
             rentalManageService.update(id, rentalManageDto);
             return "redirect:/rental/index";
-        } catch (Exception e) {
+            } catch (Exception e) {
             log.error(e.getMessage());
             ra.addFlashAttribute("rentalManageDto", rentalManageDto);
             ra.addFlashAttribute("org.springframework.validation.BindingResult.rentalManageDto", result);
+            
             return "redirect:/rental/" + id + "/edit";
         }
     }
+
+       //貸出登録貸出可否チェック
+    public boolean rentalAddCheck(Long id, RentalManageDto rentalManageDto, BindingResult result) {
+        Stock stock = this.stockService.findById(rentalManageDto.getStockId());
+        // Stock Statusが利用可能の場合(現在の仕様上リストに利用不可のものが出てこないため利用不可ステータスの判定はない)
+        if (stock.getStatus() == StockStatus.RENT_AVAILABLE.getValue()) {
+            List<RentalManage> rentalManageList = this.rentalManageService.findAllByStatusIn(Arrays.asList(RentalStatus.RENT_WAIT.getValue(), RentalStatus.RENTAlING.getValue()));
+            if(rentalManageList != null){
+                for (RentalManage rentalManage : rentalManageList) {
+                    // リストのIDと入力されているIDが同じでない場合
+                        // 貸出予定日と返却予定日のチェック
+                    if (!(rentalManageDto.getExpectedReturnOn().before(rentalManage.getExpectedRentalOn()) ||    
+                        rentalManageDto.getExpectedReturnOn().after(rentalManageDto.getExpectedReturnOn()))) {
+                        if(!result.hasFieldErrors("expectedReturnOn")){
+                            result.addError(new FieldError("rentalManageDto", "expectedReturnOn", "入力されている返却予定日ではこの本を貸し出せません"));
+                        }
+                    }   
+                    if (!(rentalManageDto.getExpectedRentalOn().before(rentalManage.getExpectedRentalOn()) ||    
+                        rentalManageDto.getExpectedRentalOn().after(rentalManage.getExpectedReturnOn()))) {
+                        if(!result.hasFieldErrors("expectedRentalOn")){
+                            result.addError(new FieldError("rentalManageDto", "expectedRentalOn", "入力されている貸出予定日ではこの本を貸し出せません"));
+                    
+                        }
+                    }
+                    
+                }
+            }
+        }
+        if (result.hasFieldErrors("expectedReturnOn") || result.hasFieldErrors("expectedRentalOn")){
+            return true;
+        }else {
+            return false;
+        }
+    }
+
+    public boolean rentalEditCheck(Long id, RentalManageDto rentalManageDto, BindingResult result) {
+        Stock stock = this.stockService.findById(rentalManageDto.getStockId());
+        // Stock Statusが利用可能の場合(現在の仕様上リストに利用不可のものが出てこないため利用不可ステータスの判定はない)
+        if (stock.getStatus() == StockStatus.RENT_AVAILABLE.getValue()) {
+            List<RentalManage> rentalManageList = this.rentalManageService.findAllByStatusIn(Arrays.asList(RentalStatus.RENT_WAIT.getValue(), RentalStatus.RENTAlING.getValue()));
+            if(rentalManageList != null){
+                for (RentalManage rentalManage : rentalManageList) {
+                    // リストのIDと入力されているIDが同じでない場合
+                    if (!rentalManage.getId().equals(rentalManageDto.getId())) {
+                        // 貸出予定日と返却予定日のチェック
+                        if (!(rentalManageDto.getExpectedReturnOn().before(rentalManage.getExpectedRentalOn()) ||    
+                            rentalManageDto.getExpectedReturnOn().after(rentalManageDto.getExpectedReturnOn()))) {
+                            if(!result.hasFieldErrors("expectedReturnOn")){
+                                result.addError(new FieldError("rentalManageDto", "expectedReturnOn", "入力されている返却予定日ではこの本を貸し出せません"));
+                            }
+                        }   
+                        if (!(rentalManageDto.getExpectedRentalOn().before(rentalManage.getExpectedRentalOn()) ||    
+                            rentalManageDto.getExpectedRentalOn().after(rentalManage.getExpectedReturnOn()))) {
+                            if(!result.hasFieldErrors("expectedRentalOn")){
+                                result.addError(new FieldError("rentalManageDto", "expectedRentalOn", "入力されている貸出予定日ではこの本を貸し出せません"));
+                        
+                            }
+                        }
+                    
+                }
+            }
+        }
+    }
+        if (result.hasFieldErrors("expectedReturnOn") || result.hasFieldErrors("expectedRentalOn")){
+            return true;
+        }else {
+            return false;
+        }
+    }
 }
+
+
+      
+
