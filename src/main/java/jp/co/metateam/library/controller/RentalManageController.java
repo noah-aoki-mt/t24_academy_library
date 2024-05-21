@@ -93,9 +93,7 @@ public class RentalManageController {
 
             Boolean rentalCheckErrors = rentalAddCheck(id, rentalManageDto, result);
             if (rentalCheckErrors) {
-                if (rentalCheckErrors) {
                     throw new Exception("Rental edit check failed");
-                }
             }
 
             // 登録処理
