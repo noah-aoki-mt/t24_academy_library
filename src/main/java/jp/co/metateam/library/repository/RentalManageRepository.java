@@ -16,7 +16,6 @@ public interface RentalManageRepository extends JpaRepository<RentalManage, Long
 
 	Optional<RentalManage> findById(Long id);
 
-    List<RentalManage> findAllByStatusIn(List<Integer> statuses);
-
+    List<RentalManage> findAllByStockIdAndStatusIn(String stockId, List<Integer> statusList);
 
 }

@@ -80,7 +80,8 @@ public class RentalManageDto {
     //日付妥当性のチェック
     public Optional<String> validateDate() { 
         if(this.expectedRentalOn != null && this.expectedReturnOn != null){
-            if(this.expectedReturnOn.before(this.expectedRentalOn)){
+            if(this.expectedReturnOn.before(this.expectedRentalOn)||
+            this.expectedRentalOn.compareTo(this.expectedReturnOn) == 0){
                 return Optional.of("返却予定日は貸出予定日よりの後の日付を入力してください");
             }
         }

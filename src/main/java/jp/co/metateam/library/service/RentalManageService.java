@@ -54,9 +54,11 @@ public class RentalManageService {
     }
 
     @Transactional
-    public List<RentalManage> findAllByStatusIn(List<Integer> statuses) {
-        return this.rentalManageRepository.findAllByStatusIn(statuses);
+    public List<RentalManage> findAllByStockIdAndStatusIn(String stockId, List<Integer> statusList) {
+        return rentalManageRepository.findAllByStockIdAndStatusIn(stockId, statusList);
     }
+
+
 
     @Transactional 
     public void save(RentalManageDto rentalManageDto) throws Exception {
@@ -94,12 +96,12 @@ public class RentalManageService {
             if (rentalManage == null) {
                 throw new Exception("ID not found.");
             }
-            Account account = rentalManage.getAccount();
+            Account account =  this.accountRepository.findByEmployeeId(rentalManageDto.getEmployeeId()).orElse(null);
             if (account == null) {
                 throw new Exception("Account not found.");
             }
 
-            Stock stock = rentalManage.getStock();
+            Stock stock = this.stockRepository.findById(rentalManageDto.getStockId()).orElse(null);
             if (stock == null) {
                 throw new Exception("Stock not found.");
             }
@@ -114,6 +116,7 @@ public class RentalManageService {
 
             // データベースへの保存
             this.rentalManageRepository.save(rentalManage);
+
         } catch (Exception e) {
             throw e;
         }

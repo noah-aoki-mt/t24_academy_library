@@ -91,9 +91,15 @@ public class RentalManageController {
                 throw new Exception("Validation error.");
             }
 
+            Optional<String> dateValidationError = rentalManageDto.validateDate();
+            if (dateValidationError.isPresent()) {
+                result.addError(new FieldError("rentalManageDto", "expectedReturnOn", dateValidationError.get()));
+                throw new Exception(dateValidationError.get());
+            }
+
             Boolean rentalCheckErrors = rentalAddCheck(id, rentalManageDto, result);
             if (rentalCheckErrors) {
-                    throw new Exception("Rental edit check failed");
+                throw new Exception("Rental edit check failed");
             }
 
             // 登録処理
@@ -170,6 +176,7 @@ public class RentalManageController {
 
             // 登録処理
             rentalManageService.update(id, rentalManageDto);
+
             return "redirect:/rental/index";
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -183,29 +190,31 @@ public class RentalManageController {
     // 貸出登録貸出可否チェック
     public boolean rentalAddCheck(Long id, RentalManageDto rentalManageDto, BindingResult result) {
         Stock stock = this.stockService.findById(rentalManageDto.getStockId());
+
         // Stock Statusが利用可能の場合(現在の仕様上リストに利用不可のものが出てこないため利用不可ステータスの判定はない)
         if (stock.getStatus() == StockStatus.RENT_AVAILABLE.getValue()) {
-            List<RentalManage> rentalManageList = this.rentalManageService.findAllByStatusIn(
+            // 同じ在庫管理番号を持ち、かつ貸出ステータスが「貸出待ち」または「貸出中」の貸出情報を取得
+            List<RentalManage> rentalManageList = this.rentalManageService.findAllByStockIdAndStatusIn(stock.getId(),
                     Arrays.asList(RentalStatus.RENT_WAIT.getValue(), RentalStatus.RENTAlING.getValue()));
+
             if (!rentalManageList.isEmpty()) {
                 for (RentalManage rentalManage : rentalManageList) {
                     // 貸出予定日と返却予定日のチェック
                     if (!(rentalManageDto.getExpectedReturnOn().before(rentalManage.getExpectedRentalOn()) ||
-                            rentalManageDto.getExpectedReturnOn().after(rentalManageDto.getExpectedReturnOn()))) {
+                            rentalManageDto.getExpectedReturnOn().after(rentalManage.getExpectedReturnOn()))) {
                         if (!result.hasFieldErrors("expectedReturnOn")) {
-                            result.addError(
-                                    new FieldError("rentalManageDto", "expectedReturnOn", "入力されている返却予定日ではこの本を貸し出せません"));
+                            result.addError(new FieldError("rentalManageDto", "expectedReturnOn",
+                                    "入力されている貸出期間ではこの本を貸し出せません"));
                         }
                     }
-                    if (!(rentalManageDto.getExpectedRentalOn().before(rentalManage.getExpectedRentalOn()) ||
-                            rentalManageDto.getExpectedRentalOn().after(rentalManage.getExpectedReturnOn()))) {
+                    if (!(rentalManageDto.getExpectedRentalOn().after(rentalManage.getExpectedReturnOn()) ||
+                            rentalManageDto.getExpectedRentalOn().before(rentalManage.getExpectedRentalOn()) ||
+                            rentalManageDto.getExpectedReturnOn().before(rentalManage.getExpectedRentalOn()))) {
                         if (!result.hasFieldErrors("expectedRentalOn")) {
-                            result.addError(
-                                    new FieldError("rentalManageDto", "expectedRentalOn", "入力されている貸出予定日ではこの本を貸し出せません"));
-
+                            result.addError(new FieldError("rentalManageDto", "expectedRentalOn",
+                                    "入力されている貸出期間ではこの本を貸し出せません"));
                         }
                     }
-
                 }
             }
         }
@@ -216,28 +225,27 @@ public class RentalManageController {
         Stock stock = this.stockService.findById(rentalManageDto.getStockId());
         // Stock Statusが利用可能の場合(現在の仕様上リストに利用不可のものが出てこないため利用不可ステータスの判定はない)
         if (stock.getStatus() == StockStatus.RENT_AVAILABLE.getValue()) {
-            List<RentalManage> rentalManageList = this.rentalManageService.findAllByStatusIn(
+            List<RentalManage> rentalManageList = this.rentalManageService.findAllByStockIdAndStatusIn(stock.getId(),
                     Arrays.asList(RentalStatus.RENT_WAIT.getValue(), RentalStatus.RENTAlING.getValue()));
             if (!rentalManageList.isEmpty()) {
                 for (RentalManage rentalManage : rentalManageList) {
                     if (!rentalManage.getId().equals(rentalManageDto.getId())) {
                         // 貸出予定日と返却予定日のチェック
                         if (!(rentalManageDto.getExpectedReturnOn().before(rentalManage.getExpectedRentalOn()) ||
-                                rentalManageDto.getExpectedReturnOn().after(rentalManageDto.getExpectedReturnOn()))) {
+                                rentalManageDto.getExpectedReturnOn().after(rentalManage.getExpectedReturnOn()))) {
                             if (!result.hasFieldErrors("expectedReturnOn")) {
                                 result.addError(new FieldError("rentalManageDto", "expectedReturnOn",
-                                        "入力されている返却予定日ではこの本を貸し出せません"));
+                                        "入力されている貸出期間ではこの本を貸し出せません"));
                             }
                         }
-                        if (!(rentalManageDto.getExpectedRentalOn().before(rentalManage.getExpectedRentalOn()) ||
-                                rentalManageDto.getExpectedRentalOn().after(rentalManage.getExpectedReturnOn()))) {
+                        if (!(rentalManageDto.getExpectedRentalOn().after(rentalManage.getExpectedReturnOn()) ||
+                                rentalManageDto.getExpectedRentalOn().before(rentalManage.getExpectedRentalOn()) ||
+                                rentalManageDto.getExpectedReturnOn().before(rentalManage.getExpectedRentalOn()))) {
                             if (!result.hasFieldErrors("expectedRentalOn")) {
                                 result.addError(new FieldError("rentalManageDto", "expectedRentalOn",
-                                        "入力されている貸出予定日ではこの本を貸し出せません"));
-
+                                        "入力されている貸出期間ではこの本を貸し出せません"));
                             }
                         }
-
                     }
                 }
             }
