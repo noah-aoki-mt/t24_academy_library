@@ -28,7 +28,7 @@
                         <thead>
                             <tr>
                                 <th class="header_book" rowspan="2">書籍名</th>
-                                <th class="header_stock" rowspan="2">在庫数</th>
+                                <th class="header_stock" rowspan="2">利用可能在庫数</th>
                                 <th class="header_days" th:colspan="${daysInMonth}" th:text="${targetYear + '年' + targetMonth + '月'}"></th>
                             </tr>
                             <tr class="days">
@@ -36,9 +36,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <!-- FIXME ControllerやService側の処理とともに表示方法を考える -->
-                                <td th:each="stock, stat : ${stocks}" th:text="${stock}"></td>
+                            <tr th:each="stock : ${stocks}">
+                                <!-- 書籍名 -->
+                                <td th:text="${stock[0].title}"></td>
+                                <!-- 利用可能在庫数 -->
+                                <td th:text="${stock[1].stockNum}"></td>
+                                <!-- 日毎の在庫数 -->
+                                 <td th:each="stockList : ${stock}" >
+                                        <span th:if="${stockList.rentalAvailable != '×'}">
+                                        <a th:href="@{/rental/add(expectedRentalOn=${#dates.format(stockList.expectedRentalOn, 'yyyy-MM-dd')}, stockId=${stockList.stockId})}" th:text="${stockList.rentalAvailable}"></a>
+                                    </span>
+                                    <span th:if="${stockList.rentalAvailable == '×'}" th:text="${stockList.rentalAvailable}"></span>
+                                </td> 
                             </tr>
                         </tbody>
                     </table>

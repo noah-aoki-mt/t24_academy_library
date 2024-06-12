@@ -4,9 +4,11 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.Arrays;
-
+import java.util.Date;
+import java.time.LocalDate;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +60,15 @@ public class RentalManageService {
         return rentalManageRepository.findAllByStockIdAndStatusIn(stockId, statusList);
     }
 
+    @Transactional
+    public Long findByUnAvailableDayCount(@Param("day") Date day, @Param("title") String title){
+        return rentalManageRepository.findByUnAvailableDayCount(day, title);
+    }
+
+    @Transactional
+    public List<String> findByAvailableStockId(@Param("day") Date day, @Param("title") String title){
+        return rentalManageRepository.findByAvailableStockId(day, title);
+    }
 
 
     @Transactional 

@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Date;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.validation.Valid;
@@ -66,8 +69,10 @@ public class RentalManageController {
         return "rental/index";
     }
 
-    @GetMapping("/rental/add")
-    public String add(Model model) {
+    @GetMapping("/rental/add")//初期値取得して表示させる
+    public String add(Model model,@RequestParam(value ="stockId", required = false)String stockId,
+                        @RequestParam(value = "expectedRentalOn", required = false)@DateTimeFormat(pattern = "yyyy-MM-dd" )Date expectedRentalOn) {
+        
 
         List<Account> accountList = this.accountService.findAll();
         List<Stock> stockList = this.stockService.findStockAvailableAll();
@@ -77,7 +82,14 @@ public class RentalManageController {
         model.addAttribute("rentalStatus", RentalStatus.values());
 
         if (!model.containsAttribute("rentalManageDto")) {
-            model.addAttribute("rentalManageDto", new RentalManageDto());
+            RentalManageDto rentalManageDto = new RentalManageDto();
+            if(stockId != null){
+                rentalManageDto.setStockId(stockId);
+            }
+            if(expectedRentalOn != null){
+                rentalManageDto.setExpectedRentalOn(expectedRentalOn);
+            }
+            model.addAttribute("rentalManageDto", rentalManageDto);
         }
 
         return "rental/add";
